@@ -8,7 +8,7 @@ import pandas as pd
 ##################################################
 if __name__ == '__main__':
     
-    # Creating a Series by passing a list of values, letting pandas create a default integer index:
+    # Creating a Series by passing a list of values, letting pandas creagite a default integer index:
     # Series
     print("------------------------------------------------------------------")
     print("Creating a Series by passing a list of values, letting pandas create a default integer index:")
