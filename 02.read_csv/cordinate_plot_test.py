@@ -35,6 +35,7 @@ def convert_value_to_rgb(value, min_value, max_value):
     len_color_code = len(color_code)
     number_of_boundary = len_color_code - 2
     
+    # インデックスを求める
     index = number_of_boundary * (value - min_value) / (max_value - min_value) + 1
     if index < 0:
         index = 0
@@ -52,29 +53,27 @@ def get_linear_interpolated_values(screen_cordinates, values, screen_width, scre
     value_array = np.zeros(shape=(screen_width, screen_width))
     num_values = len(values)
     
-    #max_distance = math.sqrt(screen_width**2 + screen_width**2)
-    
     for w in range(screen_width):
         for h in range(screen_width):
             
             # 各地点と、補間したい点との距離を求める
             no_interpolate = False
-            sum_of_distance = 0
-            distances = {}
+            sum_of_inv_distance = 0
+            inv_distances = {}
             for point_name in screen_cordinates:
                 
-                # 距離を求める
                 pw, ph = screen_cordinates[point_name]
-                distance = math.sqrt((w - pw)**2 + (h - ph)**2)
-                distances[point_name] = distance
-                sum_of_distance += distance
                 
                 # 座標が完全一致したら直接代入する
                 if (w == pw) and (h == ph):
                     value_array[pw, ph] = values[point_name]
                     no_interpolate = True
-                    print(w, h, point_name, values[point_name])
                     break
+                
+                # 距離を求める
+                distance = math.sqrt((w - pw)**2 + (h - ph)**2)
+                inv_distances[point_name] = 1 / distance
+                sum_of_inv_distance += 1/ distance
             
             # 補間不要ならcontinue
             if no_interpolate:
@@ -85,11 +84,13 @@ def get_linear_interpolated_values(screen_cordinates, values, screen_width, scre
             for point_name in screen_cordinates:
                 pw, ph = screen_cordinates[point_name]
                 value = values[point_name]
-                distance = distances[point_name]
+                inv_distance = inv_distances[point_name]
                 
-                value_array[w,h] += value * (sum_of_distance - distance) / sum_of_distance
-                #print(w, h, point_name, distance, sum_of_distance, value * (sum_of_distance - distance) / sum_of_distance)
-                
+                #rate = (sum_of_distance - distance) / sum_of_distance
+                rate = inv_distance / sum_of_inv_distance
+                value_array[w,h] += value * rate
+                #print(w, h, point_name, value, rate)
+
     return value_array
     
 ##################################################
@@ -108,14 +109,13 @@ if __name__ == '__main__':
             'dir_path': '/home/ec2-user/input/train/tokyo/',
             'latitude': 35.689521,
             'longitude': 139.691704
+        },
+        {   'name': '秩父',
+            'dir_path': '/home/ec2-user/input/train/chichibu/',
+            'latitude': 35.9898194,
+            'longitude': 139.0731637
         }
     ]
-    
-    # ディレクトリパス
-    #dir_paths = {
-    #    '水戸': '/home/ec2-user/input/train/mito/',
-    #    '東京': '/home/ec2-user/input/train/tokyo'
-    #}
     
     # 緯度と経度の範囲
     START_LONGITUDE = 138.390038
@@ -126,8 +126,8 @@ if __name__ == '__main__':
     MAX_LONGITUDE = END_LONGITUDE - START_LONGITUDE
     
     # 画面の大きさ
-    MAX_SCREEN_WIDTH = 64
-    MAX_SCREEN_HEIGHT = 64
+    MAX_SCREEN_WIDTH = 128
+    MAX_SCREEN_HEIGHT = 128
     
     # --------------------------------------------------
     # 指定してディレクトリのCSVファイルから
@@ -135,15 +135,14 @@ if __name__ == '__main__':
     # --------------------------------------------------
     dfs = {}
     for point in points:
-        # CSCから読み込み
+        # CSVから読み込み
         dir_path = point['dir_path']
         csv_df = rwc.read_weather_csvs(dir_path)
         
         # 読み込んだデータをディクショナリに格納
         point_name = point['name']
         dfs[point_name] = csv_df
-        #print(csv_df.tail())
-    
+
     # --------------------------------------------------
     # 気温を取得する
     # --------------------------------------------------
@@ -169,12 +168,13 @@ if __name__ == '__main__':
             MAX_SCREEN_HEIGHT, MAX_SCREEN_WIDTH)
             
         screen_cordinates[point_name] = (screen_w, screen_h)
-        print(screen_w, screen_h)
+        
+        #print(point_name, screen_w, screen_h, temperature_df[point_name][0])
+    
     
     # --------------------------------------------------
     # 各画面座標の気温を線形補間で求める
     # --------------------------------------------------
-    print(temperature_df.iloc[0])
     value_array = get_linear_interpolated_values(
         screen_cordinates, temperature_df.iloc[0], 
         MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT)
@@ -186,9 +186,9 @@ if __name__ == '__main__':
     for i in range(value_array.shape[0]):
         for j in range(value_array.shape[1]):
             temperature = value_array[i,j]
-            r, g, b = convert_value_to_rgb(temperature, -5, 10)
+            r, g, b = convert_value_to_rgb(temperature, -5, 35)
             rgb_array[i, j] = (b, g, r)
-            #print(i, j, temperature, rgb_array[i, j])
-        
+            #print(i, j, temperature, (r, g, b))
+
     
-    cv2.imwrite('test.png',rgb_array)
+    cv2.imwrite('test.png', rgb_array)
