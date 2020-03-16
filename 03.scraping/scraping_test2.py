@@ -2,6 +2,10 @@
 
 from scraping.highrise_weatherdata_scraping import HighriseWeatherdataScraping
 
+import os
+import datetime
+import time
+
 ##################################################
 # メイン
 ##################################################
@@ -14,9 +18,37 @@ if __name__ == '__main__':
     hour = 9
     point = 47646   # 館野
     
-    # 高層の気象データスクレイピングクラスを作成する
-    highriseWeather = HighriseWeatherdataScraping(year, month, day, hour, point)
+    # 地点ごとにディレクトリ作成
+    dirpath = str(point)
+    os.makedirs(str(point), exist_ok=True)
     
-    # スクレイピングを実行する。
-    highriseWeather.scrape_high_rise_weather_data().write_to_csv("test.csv")
+    # スクレイピングを開始する年月日を設定
+    date = datetime.date(year, month, day)
+    
+    # 1月分スクレイピングする
+    for day in range(31):
+        for hour in [9, 21]:
+        
+            # 年月日を取得
+            year = date.year
+            month = date.month
+            day = date.day
+            
+            # 高層の気象データスクレイピングクラスを作成する
+            highriseWeather = HighriseWeatherdataScraping(year, month, day, hour, point)
+            
+            # ファイル名を設定
+            filename = '{0:s}/{1:d}_{2:04d}_{3:02d}_{4:02d}_H{5:02d}.csv'.format(
+                dirpath, point, year, month, day, hour)
+            
+            # スクレイピングを実行する。
+            highriseWeather.scrape_high_rise_weather_data().write_to_csv(filename)
+            
+            # 1秒ディレイ
+            time.sleep(1)
+            
+            
+        # 日付を更新する
+        date = date + datetime.timedelta(days=1)
+        
     
