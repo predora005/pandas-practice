@@ -71,7 +71,7 @@ class HighriseWeatherdataScraping:
     # 気象データをスクレイピングする
     ##############################
     def __scrape_data(self, html, table_id):
-        """地上の気象データをスクレイピングする。
+        """気象データをスクレイピングする。
         
         Args:
             html (Response object): request.getで取得したResponseオブジェクト
@@ -176,10 +176,10 @@ class HighriseWeatherdataScraping:
         return self
         
     ##############################
-    # 高層の気象データをスクレイピングする
+    # CSVファイルに出力する
     ##############################
     def write_to_csv(self, filepath):
-        """高層の気象データをスクレイピングする。
+        """CSVファイルに出力する
         
         Args:
             html (Response object): request.getで取得したResponseオブジェクト
