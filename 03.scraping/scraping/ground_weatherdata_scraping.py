@@ -6,6 +6,8 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+from itertools import product
+
 ##################################################
 # 地上の気象データをスクレイピングするクラス。
 ##################################################
@@ -100,25 +102,85 @@ class GroundWeatherdataScraping:
             #print('=================================')
             #print(tr)
         
-        # 最大列数を取得する
-        max_col_num = 0
+        # テーブル見出しの列数を取得する
+        header_col_num = 0
         for tr in tr_all:
-            col_num = 0
             th_all = tr.find_all('th')
-            if th_all is not None:
+            if th_all:
+                col_num = 0
                 for th in th_all:
-                    rowspan = th.get('rowspan')
-                    colspan = th.get('colspan')
-                    if colspan is None:
-                        col_num = col_num + 1
+                    col_num += int(th.get('colspan', 1))
+                header_col_num = max(header_col_num, col_num)
+
+        # テーブル見出し用のリストを用意する
+        table_column = [[0 for col in range(header_col_num)] for row in range(header_row_num)]
+        
+        # テーブル見出しをリストに格納する
+        # [繰り返し回数, 対象 column] を記録するリストを作成
+        old = [[0, None] for col in range(header_col_num)]
+        for tr in tr_all:
+            th_all = tr.find_all('th')
+            #print(type(th_all))
+            if th_all:
+                # 列を分解
+                cols = []
+                col = 0
+                while col < header_col_num:
+                    if old[col][0]:
+                        th = old[col][1]
+                        old[col][0] -= 1
                     else:
-                        col_num = col_num + int(colspan)
-                    print('=================================')
-                    print(th)
-                    print(rowspan, colspan, col_num)
+                        th = th_all.pop(0)
+                        rowspan = int(th.get('rowspan', 1))
+                        if rowspan > 1:
+                            old[col] = [rowspan - 1, th]
+                    
+                    colspan = int(th.get('colspan', 1))
+                    for i in range(colspan):
+                        cols.append(th.get_text(strip=True))
+                        col += 1
+                print(cols)
         
         
+        #print(header_row_num, header_col_num)
+        #print(table_column)
         
+        # テーブル見出しをリストに格納する
+        row_no = 0
+        for tr in tr_all:
+            
+            # その行がヘッダー(th)を持つかチェックする
+            th_all = tr.find_all('th')
+            if th_all is None:
+                continue
+            
+            # ヘッダー(th)を持つ行があれば、テーブル見出しをリストに格納する
+            col_no = 0
+            for th in th_all:
+                rowspan = int(th.get('rowspan', 1))
+                colspan = int(th.get('colspan', 1))
+                
+                col_num = colspan
+                row_num = rowspan
+                
+                #print('=================================')
+                #print(th)
+                #print(rowspan, colspan)
+                #print(row_no, col_no)
+                #print(row_num, col_num)
+                
+                #for r, c in product(range(row_num), range(col_num)):
+                #    table_column[row_no+r][col_no+c] = th.get_text(strip=True)
+                #print(table_column)
+                
+                # 列No.更新
+                col_no = col_no + col_num
+                
+            # 行No.更新
+            row_no = row_no + 1
+            
+        print(table_column)
+                
         # table内の全thを抽出
         #th_all = table.find_all('th')
         #th_tr_all = soup.select('table > tbody > th > tr')
