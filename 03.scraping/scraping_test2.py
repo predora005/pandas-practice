@@ -88,8 +88,8 @@ def scrape_ground_weather_data():
             dirpath, prec_no, block_no, year, month, day)
             
         # スクレイピングを実行する。
-        groundWeather.scrape_weather_data()
-        #groundWeather.scrape_weather_data().write_to_csv(filename)
+        #groundWeather.scrape_weather_data()
+        groundWeather.scrape_weather_data().write_to_csv(filename)
             
         # 1秒ディレイ
         time.sleep(1)

@@ -64,7 +64,6 @@ class GroundWeatherdataScraping:
         """
         
         # https://www.data.jma.go.jp/obd/stats/etrn/view/hourly_s1.php?prec_no=40&block_no=47629&year=2017&month=1&day=1&view=
-        #url_second_half = "year={0:04d}&month={1:02d}&day={2:02d}&hour={3:d}&atm=&point={4:d}".format(year, month, day, hour, point)
         url_first_half = "https://www.data.jma.go.jp/obd/stats/etrn/view/hourly_s1.php?"
         url_second_half = "prec_no={0:d}&block_no={1:d}&year={2:d}&month={3:d}&day={4:d}".format(prec_no, block_no, year, month, day)
         url = url_first_half + url_second_half
@@ -96,129 +95,91 @@ class GroundWeatherdataScraping:
         # テーブル見出しの行数をカウントする
         header_row_num = 0
         for tr in tr_all:
+            
+            # <th>要素を持つ行があれば行数をカウントアップする
             th = tr.find('th')
             if th is not None:
                 header_row_num = header_row_num + 1
-            #print('=================================')
-            #print(tr)
-        
+
         # テーブル見出しの列数を取得する
         header_col_num = 0
         for tr in tr_all:
+            
+            # <th>を持つ行(<tr>)があれば列数をカウントする
             th_all = tr.find_all('th')
             if th_all:
                 col_num = 0
                 for th in th_all:
                     col_num += int(th.get('colspan', 1))
+                    
+                # 列数の最大値を更新する
                 header_col_num = max(header_col_num, col_num)
-
-        # テーブル見出し用のリストを用意する
-        table_column = [[0 for col in range(header_col_num)] for row in range(header_row_num)]
         
+        # テーブル見出し用のリストを用意する
+        table_column = []
+
         # テーブル見出しをリストに格納する
-        # [繰り返し回数, 対象 column] を記録するリストを作成
-        old = [[0, None] for col in range(header_col_num)]
+        #   - num_reapeat[列数] : rowspanが2以上のとき行方向に繰り返しセットする回数
+        #   - col_th[列数] : rowspanが2以上のとき行方向に繰り返しセットする<th>要素
+        num_repeat = [ 0 for col in range(header_col_num) ]
+        col_th = [ None for col in range(header_col_num) ]
         for tr in tr_all:
+            
+            # <th>要素を持つ行に対して処理を行う
             th_all = tr.find_all('th')
-            #print(type(th_all))
             if th_all:
-                # 列を分解
+                
+                # 全<th>要素をpop()で取出し続ける
                 cols = []
                 col = 0
                 while col < header_col_num:
-                    if old[col][0]:
-                        th = old[col][1]
-                        old[col][0] -= 1
+                    # 前の行でrowspanがある場合は、前回記憶した<th>要素を取り出す
+                    if num_repeat[col] > 0:
+                        th = col_th[col]
+                        num_repeat[col] -= 1
                     else:
                         th = th_all.pop(0)
                         rowspan = int(th.get('rowspan', 1))
                         if rowspan > 1:
-                            old[col] = [rowspan - 1, th]
+                            # rowspanが2以上のとき、
+                            # 次の行以降の繰り返し回数と、<th>要素を記録する
+                            num_repeat[col] = rowspan - 1
+                            col_th[col] = th
                     
+                    # colspan回数分、<th>の中身をリストに追加する
                     colspan = int(th.get('colspan', 1))
-                    for i in range(colspan):
+                    for c in range(colspan):
                         cols.append(th.get_text(strip=True))
                         col += 1
-                print(cols)
-        
-        
-        #print(header_row_num, header_col_num)
-        #print(table_column)
-        
-        # テーブル見出しをリストに格納する
-        row_no = 0
-        for tr in tr_all:
-            
-            # その行がヘッダー(th)を持つかチェックする
-            th_all = tr.find_all('th')
-            if th_all is None:
-                continue
-            
-            # ヘッダー(th)を持つ行があれば、テーブル見出しをリストに格納する
-            col_no = 0
-            for th in th_all:
-                rowspan = int(th.get('rowspan', 1))
-                colspan = int(th.get('colspan', 1))
                 
-                col_num = colspan
-                row_num = rowspan
-                
-                #print('=================================')
-                #print(th)
-                #print(rowspan, colspan)
-                #print(row_no, col_no)
-                #print(row_num, col_num)
-                
-                #for r, c in product(range(row_num), range(col_num)):
-                #    table_column[row_no+r][col_no+c] = th.get_text(strip=True)
-                #print(table_column)
-                
-                # 列No.更新
-                col_no = col_no + col_num
-                
-            # 行No.更新
-            row_no = row_no + 1
-            
-        print(table_column)
-                
-        # table内の全thを抽出
-        #th_all = table.find_all('th')
-        #th_tr_all = soup.select('table > tbody > th > tr')
-        #th_tr_all = soup.select('table')
-        #print(th_tr_all)
-        #for tr in th_tr_all:
-        #    print(tr)
-        
-        
-        # 列タイトルをリストに格納する
-        #table_column = []
-        #for th in th_all:
-        #    table_column.append(th.string)
+                # 当該行の列要素をリストに追加する
+                table_column.append(cols)
         
         # <table>内の全trを抽出。
-        #tr_all = table.find_all('tr')
+        tr_all = table.find_all('tr')
         
-        # 先頭のtrは抽出済みなので飛ばす
-        #tr_all = tr_all[1:]
+        # ヘッダー行は抽出済みなので飛ばす
+        header_row_num = len(table_column)
+        tr_all = tr_all[header_row_num:]
         
         # 行と列の個数を算出し、ndarrayを作成
-        #number_of_cols = len(table_column)
-        #number_of_rows = len(tr_all)
-        #table_data = np.zeros((number_of_rows, number_of_cols), dtype=np.float32)
+        number_of_cols = header_col_num
+        number_of_rows = len(tr_all)
+        table_data = np.zeros((number_of_rows, number_of_cols), dtype=np.float32)
         
         # 各行のデータをndarrayに格納する
-        #for r, tr in enumerate(tr_all):
-        #    td_all = tr.find_all('td')
-        #    for c, td in enumerate(td_all):
-        #        try:
-        #            table_data[r,c] = td.string
-        #        except ValueError:
-        #            table_data[r,c] = np.nan
-
-        # 抽出したデータのDataFrameを生成する
-        #df = pd.DataFrame(data=table_data, columns=table_column)
+        for r, tr in enumerate(tr_all):
+            td_all = tr.find_all('td')
+            for c, td in enumerate(td_all):
+                try:
+                    table_data[r,c] = td.get_text()
+                except ValueError:
+                    table_data[r,c] = np.nan
         
-        #return df
+        # 抽出したデータのDataFrameを生成する
+        df = pd.DataFrame(data=table_data, columns=table_column)
+        
+        return df
         
     ##############################
     # 気象データをスクレイピングする
