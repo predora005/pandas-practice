@@ -9,6 +9,7 @@ pandasの練習用リポジトリ
 - bs4
 
 ## Install
+### AWS Cloud9
 sudo update-alternatives --config python<br>
 sudo pip install --upgrade pip<br>
 pip3 install numpy<br>

@@ -1,7 +1,7 @@
 # coding: utf-8
 
-from scraping.highrise_weatherdata_scraping import HighriseWeatherdataScraping
-from scraping.ground_weatherdata_scraping import GroundWeatherdataScraping
+from scraping.hwscrp import HighriseWeatherdataScraping
+from scraping.gwscrp import GroundWeatherdataScraping
 
 import os
 import datetime
@@ -89,7 +89,7 @@ def scrape_ground_weather_data():
             
         # スクレイピングを実行する。
         #groundWeather.scrape_weather_data()
-        groundWeather.scrape_weather_data().write_to_csv(filename)
+        groundWeather.scrape().write_to_csv(filename)
             
         # 1秒ディレイ
         time.sleep(1)
@@ -104,7 +104,7 @@ def scrape_ground_weather_data():
 if __name__ == '__main__':
     
     # 高層の気象データをスクレイピングする
-    #scrape_high_rise_weather_data()
+    scrape_high_rise_weather_data()
     
     # 地上の気象データをスクレイピングする
     scrape_ground_weather_data()
